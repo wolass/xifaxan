@@ -1,0 +1,345 @@
+# Fibraxine - Analiza statystyczna dla T. Banasiewicza
+
+Autor: W. Francuzik 
+
+```{r results='hide',include=F}
+require(xifaxan)
+df <- tidy_df()
+```
+
+##  kwestie do weryfikacji:
+
+
+
+### - czy grupy są porównywalne pod względem płci, wieku i BMI
+
+```{r}
+sex <- df %>% 
+  group_by(grupa,płeć) %>% 
+  summarize(n = n()) %>% 
+  spread(key = `płeć`, value = n)
+
+sex
+chisq.test(sex[,2:3])
+```
+
+BRAK różnic względem płci
+
+```{r}
+age <- df %>% 
+  group_by(grupa) %>% 
+  summarize(sr_wiek = mean(wiek),
+            sd_wiek = sd(wiek))
+
+df %>% 
+  t.test(formula = wiek~grupa,data=.)
+```
+
+Nie ma różnic w wieku 
+
+```{r}
+df %>% group_by(grupa) %>% 
+  summarise(sr_BMI = mean(BMI),
+            sd_BMI = sd(BMI))
+
+t.test(BMI~grupa, df)
+```
+
+Brak różnic w BMI 
+
+
+### - czy jest różnica pomiędzy średnią ilością wypróżnień przed terapią W0 i po 3 mcach W1 dla wszystkich badanych oraz osobno dla grupy żółtej i zielonej
+
+dla wszystkich : 
+
+```{r}
+# sloppy
+wilcox.test(df$`W0 średnia dzienna ilość wypróżnień w ciągu ostatnich 7 dni`,
+       df$`W1 średnia dzienna ilość wypróżnień w ciągu ostatnich 7 dni`)
+
+```
+
+Jest różnica. 
+
+Grupa PLACEBO:
+
+```{r}
+df %>% 
+  filter(grupa == "placebo") %>% 
+{wilcox.test(.$`W0 średnia dzienna ilość wypróżnień w ciągu ostatnich 7 dni`,
+       .$`W1 średnia dzienna ilość wypróżnień w ciągu ostatnich 7 dni`)}
+
+```
+
+W placebo BRAK różnic.
+
+Grupa VERUM:
+
+```{r}
+df %>% 
+  filter(grupa == "verum") %>% 
+{wilcox.test(.$`W0 średnia dzienna ilość wypróżnień w ciągu ostatnich 7 dni`,
+       .$`W1 średnia dzienna ilość wypróżnień w ciągu ostatnich 7 dni`)}
+
+```
+
+Ogromna różnica!
+
+```{r}
+df2 <- df %>% 
+  select(pacjent,
+         grupa,
+         `W0 średnia dzienna ilość wypróżnień w ciągu ostatnich 7 dni`,
+         `W1 średnia dzienna ilość wypróżnień w ciągu ostatnich 7 dni`) %>% 
+  gather(key = "wizyta",
+         value = "srednia_wypr_dzienne",
+         3:4) %>% 
+ mutate(wizyta = factor(wizyta))
+
+levels(df2$wizyta) <- c("W0","W1")
+  df2 %>% 
+  ggpubr::ggpaired(x = "wizyta",
+                   y = "srednia_wypr_dzienne",
+                   facet.by = "grupa")
+```
+
+
+
+###- czy jest różnica pomiędzy konsystencją stolca przed terapią W0 i po 3 mcach W1 dla wszystkich badanych oraz osobno dla grupy żółtej i zielonej
+
+Wszyscy:
+
+```{r}
+wilcox.test(df$`W0 średnia konsystencja stolca w ciągu ostatnich 7 dni (skala Bristol )`,
+            df$`W1 średnia konsystencja stolca w ciągu ostatnich 7 dni (skala Bristol )`)
+```
+
+jest różnica między wizytami dla wszystkich. 
+
+
+PLACEBO:
+
+```{r}
+df %>% 
+  filter(grupa == "placebo") %>% 
+  {wilcox.test(.$`W0 średnia konsystencja stolca w ciągu ostatnich 7 dni (skala Bristol )`,
+             .$`W1 średnia konsystencja stolca w ciągu ostatnich 7 dni (skala Bristol )`)}
+
+```
+
+Tu brak
+
+
+VERUM:
+
+```{r}
+df %>% 
+  filter(grupa == "verum") %>% 
+  {wilcox.test(.$`W0 średnia konsystencja stolca w ciągu ostatnich 7 dni (skala Bristol )`,
+             .$`W1 średnia konsystencja stolca w ciągu ostatnich 7 dni (skala Bristol )`)}
+
+```
+
+JEST!
+
+```{r}
+df2 <- df %>% 
+  select(pacjent,
+         grupa,
+         `W0 średnia konsystencja stolca w ciągu ostatnich 7 dni (skala Bristol )`,
+         `W1 średnia konsystencja stolca w ciągu ostatnich 7 dni (skala Bristol )`) %>% 
+  gather(key = "wizyta",
+         value = "srednia_konsyst_stolca",
+         3:4) %>% 
+ mutate(wizyta = factor(wizyta))
+
+levels(df2$wizyta) <- c("W0","W1")
+  df2 %>% 
+  ggpubr::ggpaired(x = "wizyta",
+                   y = "srednia_konsyst_stolca",
+                   facet.by = "grupa")
+```
+
+### - czy jest róznica pomiędzy nasileniem dolegliwości bólowych przed terapią W0 i po 3 mcach W1 dla wszystkich badanych oraz osobno dla grupy żółtej i zielonej
+
+Wszyscy:
+
+```{r}
+wilcox.test(df$`W0 występowanie/brak bólu brzucha i jego nasilenie w skali VAS w ciągu ostatnich 7 dni`,
+            df$`W1 występowanie/brak bólu brzucha i jego nasilenie w skali VAS średnio w ciągu badania w przeliczeniu na 7 dni`)
+```
+
+jest różnica między wizytami dla wszystkich. 
+
+
+PLACEBO:
+
+```{r}
+df %>% 
+  filter(grupa == "placebo") %>% 
+  {wilcox.test(.$`W0 występowanie/brak bólu brzucha i jego nasilenie w skali VAS w ciągu ostatnich 7 dni`,
+             .$`W1 występowanie/brak bólu brzucha i jego nasilenie w skali VAS średnio w ciągu badania w przeliczeniu na 7 dni`)}
+
+```
+
+Tu też
+
+
+VERUM:
+
+```{r}
+df %>% 
+  filter(grupa == "verum") %>% 
+  {wilcox.test(.$`W0 występowanie/brak bólu brzucha i jego nasilenie w skali VAS w ciągu ostatnich 7 dni`,
+             .$`W1 występowanie/brak bólu brzucha i jego nasilenie w skali VAS średnio w ciągu badania w przeliczeniu na 7 dni`)}
+```
+
+I tu.
+
+```{r}
+df2 <- df %>% 
+  select(pacjent,
+         grupa,
+         `W0 występowanie/brak bólu brzucha i jego nasilenie w skali VAS w ciągu ostatnich 7 dni`,
+         `W1 występowanie/brak bólu brzucha i jego nasilenie w skali VAS średnio w ciągu badania w przeliczeniu na 7 dni`) %>% 
+  gather(key = "wizyta",
+         value = "srednia_konsyst_stolca",
+         3:4) %>% 
+ mutate(wizyta = factor(wizyta))
+
+levels(df2$wizyta) <- c("W0","W1")
+  df2 %>% 
+  ggpubr::ggpaired(x = "wizyta",
+                   y = "srednia_konsyst_stolca",
+                   facet.by = "grupa")
+```
+
+
+
+
+### - czy jest róznica pomiędzy ocena jakość życia według polskiej wersji kwestionariusza Gastrointestinal Quality of Life Index (GIQLI) przed terapią W0 i po 3 mcach W1 dla wszystkich badanych oraz osobno dla grupy żółtej i zielonej
+
+Wszyscy:
+
+```{r}
+wilcox.test(df$`W0 - jakość życia według polskiej wersji kwestionariusza Gastrointestinal Quality of Life Index (GIQLI) (zgodnie ze skalą w ciągu ostatnich 2 tygodni`,
+            df$`W1 - jakość życia według polskiej wersji kwestionariusza Gastrointestinal Quality of Life Index (GIQLI) (zgodnie ze skalą w ciągu ostatnich 2 tygodni`)
+```
+
+jest różnica między wizytami dla wszystkich. 
+
+
+PLACEBO:
+
+```{r}
+df %>% 
+  filter(grupa == "placebo") %>% 
+  {wilcox.test(.$`W0 - jakość życia według polskiej wersji kwestionariusza Gastrointestinal Quality of Life Index (GIQLI) (zgodnie ze skalą w ciągu ostatnich 2 tygodni`,
+             .$`W1 - jakość życia według polskiej wersji kwestionariusza Gastrointestinal Quality of Life Index (GIQLI) (zgodnie ze skalą w ciągu ostatnich 2 tygodni`)}
+
+```
+
+Tu też
+
+
+VERUM:
+
+```{r}
+df %>% 
+  filter(grupa == "verum") %>% 
+  {wilcox.test(.$`W0 - jakość życia według polskiej wersji kwestionariusza Gastrointestinal Quality of Life Index (GIQLI) (zgodnie ze skalą w ciągu ostatnich 2 tygodni`,
+             .$`W1 - jakość życia według polskiej wersji kwestionariusza Gastrointestinal Quality of Life Index (GIQLI) (zgodnie ze skalą w ciągu ostatnich 2 tygodni`)}
+```
+
+I tu.
+
+```{r}
+df2 <- df %>% 
+  select(pacjent,
+         grupa,
+         `W0 - jakość życia według polskiej wersji kwestionariusza Gastrointestinal Quality of Life Index (GIQLI) (zgodnie ze skalą w ciągu ostatnich 2 tygodni`,
+         `W1 - jakość życia według polskiej wersji kwestionariusza Gastrointestinal Quality of Life Index (GIQLI) (zgodnie ze skalą w ciągu ostatnich 2 tygodni`) %>% 
+  gather(key = "wizyta",
+         value = "srednia_konsyst_stolca",
+         3:4) %>% 
+ mutate(wizyta = factor(wizyta))
+
+levels(df2$wizyta) <- c("W0","W1")
+  df2 %>% 
+  ggpubr::ggpaired(x = "wizyta",
+                   y = "srednia_konsyst_stolca",
+                   facet.by = "grupa")
+```
+
+### - czy jest róznica pomiędzy ilością wizyt ambulatoryjnych pomiędzy grupami żółta i zieloną
+
+```{r}
+
+table(df$`ilość wizyt ambulatoryjnych w ciągu ostatnich 3 miesięcy związanych z chorobą uchyłkową I jej zasotrzeniami/pwikłaniami`, df$grupa) %>% 
+  as.data.frame() %>% 
+  ggpubr::ggbarplot(x = "Var1",
+                    y = "Freq",
+                    fill = "Var2",
+                    position = position_dodge2())+
+  labs(x = "ilość wizyt",
+       y = "n",
+       fill = "")
+
+
+```
+
+```{r}
+wilcox.test(`ilość wizyt ambulatoryjnych w ciągu ostatnich 3 miesięcy związanych z chorobą uchyłkową I jej zasotrzeniami/pwikłaniami`~grupa, data = df)
+```
+nie bylo roznic...
+
+
+### - czy jest róznicą pomiędzy ilością hospitalizacji pomiędzy grupami żółta i zieloną (pewnie wyjdzie nieznamiennie)
+
+
+```{r}
+df2 <- df %>% 
+  select(pacjent,
+         grupa,`ilość hospitalizacji ciągu ostatnich 3 miesięcy związanych z chorobą uchyłkową I jej zasotrzeniami/pwikłaniami`) %>%
+  mutate(ilosc_hosp = `ilość hospitalizacji ciągu ostatnich 3 miesięcy związanych z chorobą uchyłkową I jej zasotrzeniami/pwikłaniami`) %>% 
+  group_by(grupa) %>% 
+  summarise(ilosc_hosp = mean(ilosc_hosp,na.rm = T))
+
+df2 %>% 
+ggpubr::ggbarplot(x = "grupa",
+                   y = "ilosc_hosp")
+
+table(df$`ilość hospitalizacji ciągu ostatnich 3 miesięcy związanych z chorobą uchyłkową I jej zasotrzeniami/pwikłaniami`, df$grupa) %>% 
+  chisq.test()
+```
+
+Nie było różnic między grupami jak chodzi o ilość hospitalizacji - pewnie rożnice by były istotne jak byśmy mieli więszką grupę badancyh i więcej udokumentoanych hospitalizacji u pacjentów z placebo bo w grupie z verum nie było wcale hospitalizacji... 
+
+
+
+### - ostatnia kolumna (X) dotyczy oceny subiektywnej pacjenta po terapii, czy jest róznica w tej ocenie pomiędzy grupą żółtą a zieloną 
+
+
+
+```{r}
+
+t1 <- table(df$grupa, df$`Czy w opinii pacjenta samopoczucie związane z przewodem pokarmowym jest: 1) takie samo jak przed rozpoczęciem leczenia; 2) gorsze niż przed rozpoczęciem leczenia; 3) lepsze niż przed rozpoczęciem leczenia`)
+
+t1
+
+prop.table(t1,1)
+```
+
+Nie było różnic. istotnych stat. Ale na oko to placebo daje lepszy subiektywny efekt pacjentowi :)). 
+
+
+
+
+## mamy BMI - czy można zobaczyć osobno dla grup żółtej i zielonej czy jest korelacja między wynikami leczenia (bóle, jakośc życia, ocena subiektywna pacjenta) a BMI? 
+ 
+Mamy BMI ale tylko wyjściowe. BMI po 3 Miesiącach nie było oznaczone - dlatego korelacja może jedynie odbyć się do BMI na wyjściu co znacznie ogranicza analizę. myślę że nie będzie to wystarczajće dla oodzielnej publikacji. 
+Mam to liczyć? 
+
+Pozdrawiam
+
+Wojtek
